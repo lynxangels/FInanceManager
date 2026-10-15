@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id_pengguna    Int       @id @default(autoincrement()) @db.UnsignedInt
+  nama           String    @db.VarChar(100)
+  email          String    @unique @db.VarChar(100)
+  kata_sandi     String    @db.VarChar(255)
+  tanggal_daftar DateTime  @db.Date
+  status_akun    StatusAkun? @default(Aktif)
+  role           Role      @default(user)
+
+  budgets                  budgets[]
+  expenses                 expenses[]
+  incomes                  incomes[]
+  debts                    debts[]
+  receivables              receivables[]
+  financial_goals          financial_goals[]
+  financial_predictions    financial_predictions[]
+  social_user_relations_1  social_user_relations[] @relation("UserRelation1")
+  social_user_relations_2  social_user_relations[] @relation("UserRelation2")
+
+  notes            notes[]
+  calendar_events  calendar_events[]
+}
+
+
+model categories {
+  id_kategori   Int           @id @default(autoincrement()) @db.UnsignedInt
+  nama_kategori String        @db.VarChar(100)
+  tipe_kategori TipeKategori
+
+  budgets  budgets[]
+  expenses expenses[]
+}
+
+model payment_methods {
+  id_metode   Int    @id @default(autoincrement()) @db.UnsignedInt
+  nama_metode String @db.VarChar(50)
+
+  expenses expenses[]
+  incomes  incomes[]
+}
+
+model currencies {
+  id_mata_uang   Int      @id @default(autoincrement()) @db.UnsignedInt
+  kode_mata_uang String   @unique @db.VarChar(5)
+  nama_mata_uang String   @db.VarChar(50)
+  nilai_tukar    Decimal? @db.Decimal(18, 4)
+
+  expenses expenses[]
+  incomes  incomes[]
+}
+
+model budgets {
+  id_anggaran     Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna     Int      @db.UnsignedInt
+  id_kategori     Int      @db.UnsignedInt
+  jumlah_anggaran Decimal  @db.Decimal(18, 2)
+  bulan           Int
+  tahun           Int
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user     users      @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+  category categories @relation(fields: [id_kategori], references: [id_kategori])
+
+  @@unique([id_pengguna, id_kategori, bulan, tahun], name: "unique_budget")
+  @@index([id_pengguna])
+  @@index([id_kategori])
+}
+
+model expenses {
+  id_pengeluaran Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna    Int      @db.UnsignedInt
+  id_kategori    Int      @db.UnsignedInt
+  id_metode      Int      @db.UnsignedInt
+  id_mata_uang   Int      @db.UnsignedInt
+  jumlah         Decimal  @db.Decimal(18, 2)
+  tanggal        DateTime @db.Date
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  user           users           @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+  category       categories      @relation(fields: [id_kategori], references: [id_kategori])
+  payment_method payment_methods @relation(fields: [id_metode], references: [id_metode])
+  currency       currencies      @relation(fields: [id_mata_uang], references: [id_mata_uang])
+
+  @@index([id_pengguna], name: "idx_pengguna")
+  @@index([id_kategori])
+  @@index([id_metode])
+  @@index([id_mata_uang])
+}
+
+model incomes {
+  id_pemasukan Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna  Int      @db.UnsignedInt
+  id_metode    Int      @db.UnsignedInt
+  id_mata_uang Int      @db.UnsignedInt
+  jumlah       Decimal  @db.Decimal(18, 2)
+  sumber       String?  @db.VarChar(100)
+  tanggal      DateTime @db.Date
+
+  user           users           @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+  payment_method payment_methods @relation(fields: [id_metode], references: [id_metode])
+  currency       currencies      @relation(fields: [id_mata_uang], references: [id_mata_uang])
+
+  @@index([id_pengguna])
+  @@index([id_metode])
+  @@index([id_mata_uang])
+}
+
+model debts {
+  id_utang        Int         @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna     Int         @db.UnsignedInt
+  jumlah_utang    Decimal     @db.Decimal(18, 2)
+  tanggal_tenggat DateTime    @db.Date
+  status_utang    StatusUtang @default(Belum_Dibayar)
+
+  user users @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+
+  @@index([id_pengguna])
+}
+
+model receivables {
+  id_piutang      Int            @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna     Int            @db.UnsignedInt
+  jumlah_piutang  Decimal        @db.Decimal(18, 2)
+  tanggal_tenggat DateTime       @db.Date
+  status_piutang  StatusPiutang  @default(Belum_Diterima)
+
+  user users @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+
+  @@index([id_pengguna])
+}
+
+model financial_goals {
+  id_tujuan      Int          @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna    Int          @db.UnsignedInt
+  nama_tujuan    String       @db.VarChar(100)
+  total_target   Decimal      @db.Decimal(18, 2)
+  tanggal_target DateTime     @db.Date
+  status         StatusTujuan @default(Belum_Tercapai)
+
+  user users @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+
+  @@index([id_pengguna])
+}
+
+model financial_predictions {
+  id_prediksi            Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna            Int      @db.UnsignedInt
+  bulan_prediksi         Int
+  estimasi_pemasukan     Decimal? @db.Decimal(18, 2)
+  estimasi_pengeluaran   Decimal? @db.Decimal(18, 2)
+  prediksi_saldo_akhir   Decimal? @db.Decimal(18, 2)
+
+  user users @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+
+  @@index([id_pengguna])
+}
+
+model social_user_relations {
+  id_relasi      Int           @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna1   Int           @db.UnsignedInt
+  id_pengguna2   Int           @db.UnsignedInt
+  status_relasi  StatusRelasi  @default(Pending)
+
+  user1 users @relation("UserRelation1", fields: [id_pengguna1], references: [id_pengguna], onDelete: Cascade)
+  user2 users @relation("UserRelation2", fields: [id_pengguna2], references: [id_pengguna], onDelete: Cascade)
+
+  @@unique([id_pengguna1, id_pengguna2])
+  @@index([id_pengguna2])
+}
+
+model notes {
+  id_note      Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna  Int      @db.UnsignedInt
+  title        String   @db.VarChar(150)
+  content      String   @db.Text
+  color        String?  @db.VarChar(30)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  user users @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+
+  @@index([id_pengguna])
+}
+
+model calendar_events {
+  id_event    Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_pengguna Int      @db.UnsignedInt
+  title       String   @db.VarChar(150)
+  start_date  DateTime
+  end_date    DateTime
+  all_day     Boolean  @default(false)
+  color       String?  @db.VarChar(30)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user users @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+
+  @@index([id_pengguna])
+}
+
+enum StatusAkun {
+  Aktif
+  Tidak_Aktif @map("Tidak Aktif")
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum TipeKategori {
+  Manual
+  Dinamis
+}
+
+enum StatusUtang {
+  Belum_Dibayar    @map("Belum Dibayar")
+  Dibayar_Sebagian @map("Dibayar Sebagian")
+  Lunas
+}
+
+enum StatusPiutang {
+  Belum_Diterima    @map("Belum Diterima")
+  Diterima_Sebagian @map("Diterima Sebagian")
+  Lunas
+}
+
+enum StatusTujuan {
+  Tercapai
+  Belum_Tercapai @map("Belum Tercapai")
+}
+
+enum StatusRelasi {
+  Pending
+  Accepted
+}
